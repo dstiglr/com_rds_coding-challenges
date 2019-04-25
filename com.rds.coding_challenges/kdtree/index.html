@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>KD-Tree</title>
+    <meta charset="UTF-8" />
+</head>
+
+<body>
+    <script src="kd-tree.js"></script>
+    <script src="../pubic/js/p5.min.js"></script>
+    <script>
+        var CIRCLE_SIZE = 4;
+        var DATA_SIZE = 9200;
+        var K_DIST = 45;
+        var points = Array.from({
+            length: DATA_SIZE
+        }, () => [(Math.floor(Math.random() * 1200)), (Math.floor(Math.random() * 600))]);
+
+        var kd = new KDTree(points, 2);
+        kd.nearest([2, 8], K_DIST);
+        console.log(kd);
+        //console.log('nearest', nearest);
+
+        function setup() {
+            createCanvas(1200, 600);
+        }
+
+        function draw() {
+            //background(0);
+            fill(0);
+
+            points.forEach(function(item) {
+                circle(item[0], item[1], CIRCLE_SIZE)
+            });
+
+
+            fill(0, 255, 0);
+            kd._visited.forEach(function(item) {
+                circle(item[0], item[1], CIRCLE_SIZE)
+            });
+
+            fill(255, 0, 0);
+            kd._nearest.forEach(function(item) {
+                circle(item[0], item[1], CIRCLE_SIZE)
+            });
+        }
+
+        function mouseMoved() {
+            nearest = kd.nearest([mouseX, mouseY], K_DIST);
+        }
+    </script>
+</body>
+
+</html>
