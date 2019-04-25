@@ -7,27 +7,42 @@
 </head>
 
 <body>
+    <br>
+    <div id='container'></div>
+    <br>
+    <select id="type">
+        <option value="kd-tree">kd-tree nearest neightbors</option>
+        <option value="force">Force Brute nearest neightbors</option>
+        <option value="kd-tree-point">kd-tree nearest point</option>
+    </select> &nbsp; # Points: <input id="points" type="number" value="500" onchange="updatePoints()"> # Distance: <input id="distance" type="number" value="45">
+    <br> Frame rate: <input type="text" id="frame_rate" readonly/>
+    <script src="../pubic/js/jquery.min.js"></script>
     <script src="kd-tree.js"></script>
     <script src="../pubic/js/p5.min.js"></script>
     <script>
         var CIRCLE_SIZE = 4;
-        var DATA_SIZE = 9200;
+        var DATA_SIZE = 2500;
         var K_DIST = 45;
-        var points = Array.from({
-            length: DATA_SIZE
-        }, () => [(Math.floor(Math.random() * 1200)), (Math.floor(Math.random() * 600))]);
-
-        var kd = new KDTree(points, 2);
-        kd.nearest([2, 8], K_DIST);
-        console.log(kd);
-        //console.log('nearest', nearest);
+        var points;
+        var nearestPoints;
+        var visitedPoints;
+        var kd;
+        var nearestP;
 
         function setup() {
-            createCanvas(1200, 600);
+            var canvas = createCanvas(windowWidth - 220, windowHeight - 120);
+            canvas.parent('container');
+            points = Array.from({
+                length: $('#points').val()
+            }, () => [((Math.random() * windowWidth - 220)), ((Math.random() * windowHeight - 120))]);
+            kd = new KDTree(points, 2);
+            nearestPoints = kd.nearestNeighbors([2, 8], K_DIST);
+            visitedPoints = kd.getVisitedPoints();
+            nearestP = kd.nearest([2, 8]);
         }
 
         function draw() {
-            //background(0);
+            background(255);
             fill(0);
 
             points.forEach(function(item) {
@@ -36,18 +51,63 @@
 
 
             fill(0, 255, 0);
-            kd._visited.forEach(function(item) {
+            visitedPoints.forEach(function(item) {
                 circle(item[0], item[1], CIRCLE_SIZE)
             });
 
             fill(255, 0, 0);
-            kd._nearest.forEach(function(item) {
+            nearestPoints.forEach(function(item) {
                 circle(item[0], item[1], CIRCLE_SIZE)
             });
+
+            if (nearestP && $('#type').val() == 'kd-tree-point') {
+                circle(nearestP.point[0], nearestP.point[1], CIRCLE_SIZE * 2)
+            }
+
+            fill(0, 0, 255);
+            circle(mouseX, mouseY, CIRCLE_SIZE)
+            $("#frame_rate").val(Math.floor(frameRate()));
         }
 
         function mouseMoved() {
-            nearest = kd.nearest([mouseX, mouseY], K_DIST);
+            K_DIST = parseFloat($('#distance').val());
+            if ($('#type').val() == 'kd-tree') {
+                nearestPoints = kd.nearestNeighbors([mouseX, mouseY], K_DIST);
+                visitedPoints = kd.getVisitedPoints();
+            } else if ($('#type').val() == 'force') {
+                searchForce([mouseX, mouseY]);
+            } else if ($('#type').val() == 'kd-tree-point') {
+                nearestPoints = [];
+                nearestP = kd.nearest([mouseX, mouseY]);
+                visitedPoints = kd.getVisitedPoints();
+            }
+        }
+
+
+        function searchForce(point) {
+            nearestPoints = [];
+            visitedPoints = [];
+            var distance = 0;
+            points.forEach(function(item) {
+                visitedPoints.push(item);
+                var dist = euclidianDist(point, item, 2);
+                if (dist <= K_DIST)
+                    nearestPoints.push(item);
+            });
+        }
+
+        function euclidianDist(a, b, k) {
+            var dist = 0;
+            for (var i = 0; i < k; i++)
+                dist += Math.pow((a[i] - b[i]), 2);
+            return Math.sqrt(dist);
+        }
+
+        function updatePoints() {
+            points = Array.from({
+                length: $('#points').val()
+            }, () => [((Math.random() * windowWidth - 220)), ((Math.random() * windowHeight - 120))]);
+            kd = new KDTree(points, 2);
         }
     </script>
 </body>
