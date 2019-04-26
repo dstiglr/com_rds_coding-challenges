@@ -26,18 +26,19 @@ class KDTree {
 
     /**
      * Initialize kd-tree structure
-     * @param {array[array]} points 
+     * @param {array[array]} data 
      * @param {float} k dimension of three
      */
-    constructor(points, k) {
-        this.log('binary search tree is init...');
+    constructor(data, k) {
         this.k = k;
 
-        this.points = points;
+        this.data = data;
         this.root = null;
-        this._nearest = null;
-        this._distance = Infinity;
+        this._nearest = null; // manages nearest point to input data
+        this._nearestK = []; // storage nearest points for given distance
+        this._distance = Infinity; // manages distance on query search
         this._visited = []; // debug only
+        this.distanceFunc = this.euclidianDist;
         // build kd-tree
         this.build();
     }
@@ -48,11 +49,11 @@ class KDTree {
      */
     sortData() {
         // sort by the 0 axis
-        this.points.sort(function(a, b) {
+        this.data.sort(function(a, b) {
             return a[0] - b[0];
         });
-        var median = Math.floor(this.points.length / 2);
-        var mRoot = this.points.splice(median, 1);
+        var median = Math.floor(this.data.length / 2);
+        var mRoot = this.data.splice(median, 1);
         this.root = this.insert(this.root, mRoot[0]);
     }
 
@@ -60,15 +61,16 @@ class KDTree {
      * Build the tree
      */
     build() {
-        if (!Array.isArray(this.points) || this.points.length <= 0)
+        if (!Array.isArray(this.data) || this.data.length <= 0)
             throw "The given data must be an array and can't be empty";
 
         this.log('build started...');
 
         //this.sortData();
 
-        for (var i = 0; i < this.points.length; i++) {
-            this.root = this.insert(this.root, this.points[i]);
+        // start building
+        for (var i = 0; i < this.data.length; i++) {
+            this.root = this.insert(this.root, this.data[i]);
         }
         this.log('build finished...');
     }
@@ -128,43 +130,62 @@ class KDTree {
      * Search nearest neighboors recursively from input point
      * @param {KDNode} node current node
      * @param {array} point input point
-     * @param {float} dist dist restriction
+     * @param {float} dist distance constraint
      */
-    _nNeighboorsSearchRec(node, point, dist) {
+    _nearestNeighborsRec(node, point, dist) {
         if (node == null) {
             return;
         }
 
-        var _dist = node.euclidianDist(point, this.k);
+        var _dist = this.euclidianDist(node.point, point);
         this._visited.push(node.point);
         if (_dist <= dist) {
-            this._nearestNeighbors.push(node.point);
+            node.point['dist'] = _dist;
+            this._nearestK.push(node.point);
         }
 
         if (point[node.axis] <= node.getValue()) {
             if (point[node.axis] - dist <= node.getValue())
-                this._nNeighboorsSearchRec(node.left, point, dist);
+                this._nearestNeighborsRec(node.left, point, dist);
             if (point[node.axis] + dist > node.getValue())
-                this._nNeighboorsSearchRec(node.rigth, point, dist);
+                this._nearestNeighborsRec(node.rigth, point, dist);
         } else {
             if (point[node.axis] + dist > node.getValue())
-                this._nNeighboorsSearchRec(node.rigth, point, dist);
+                this._nearestNeighborsRec(node.rigth, point, dist);
             if (point[node.axis] - dist <= node.getValue())
-                this._nNeighboorsSearchRec(node.left, point, dist);
+                this._nearestNeighborsRec(node.left, point, dist);
         }
     }
 
     /**
-     * Start nearest search
+     * Search nearest neghboors for given point
      * @param {array} point input point
      * @param {float} distance distance constraint
      */
     nearestNeighbors(point, distance) {
-        this._nearestNeighbors = [];
+        this._nearestK = [];
         this._visited = [];
-        this._nNeighboorsSearchRec(this.root, point, distance);
-        return this._nearestNeighbors;
+        this._nearestNeighborsRec(this.root, point, distance);
+        this._nearestK.sort(function(a, b) {
+            return a.dist > b.dist;
+        });
+        return this._nearestK;
     }
+
+    /**
+     * Search k nearest neghboors for given point
+     * @param {array} point input point
+     * @param {float} distance distance constraint
+     * @param {floar} k k number of required neighboors 
+     */
+    nearestNeighborsK(point, distance, k) {
+        var nearest = this.nearestNeighbors(point, distance);
+        if (nearest.length > k) {
+            return nearest.splice(0, k);
+        }
+        return nearest;
+    }
+
 
     /**
      * Search nearest neighboor recursively
@@ -172,15 +193,15 @@ class KDTree {
      * @param {*} point 
      */
     _searchNearestRec(node, point) {
-        if (node == null || node.euclidianDist(point) > this._distance) {
+        if (node == null) {
             return;
         }
 
-        var _dist = node.euclidianDist(point, this.k);
+        var _dist = this.euclidianDist(node.point, point);
         this._visited.push(node.point);
         if (_dist < this._distance) {
             this._distance = _dist;
-            this._nearest = node;
+            this._nearest = node.point;
         }
 
         if (point[node.axis] <= node.getValue()) {
@@ -202,6 +223,7 @@ class KDTree {
      */
     nearest(point) {
         this._nearest = null;
+        this._nearestK = [];
         this._visited = [];
         this._distance = Infinity;
         this._searchNearestRec(this.root, point);
@@ -213,6 +235,18 @@ class KDTree {
      */
     getVisitedPoints() {
         return this._visited;
+    }
+
+    /**
+     * Compute the euclidian distance
+     * @param {array} pointA
+     * @param {array} pointB 
+     */
+    euclidianDist(a, b) {
+        var dist = 0;
+        for (var i = 0; i < this.k; i++)
+            dist += Math.pow((a[i] - b[i]), 2);
+        return Math.sqrt(dist);
     }
 
     log(message) {
@@ -262,19 +296,7 @@ class KDNode {
     }
 
     /**
-     * Compute the euclidian distance fron actual node and input point
-     * @param {arrat} point 
-     * @param {float} k dimension of tree 
-     */
-    euclidianDist(point, k) {
-        var dist = 0;
-        for (var i = 0; i < k; i++)
-            dist += Math.pow((this.point[i] - point[i]), 2);
-        return Math.sqrt(dist);
-    }
-
-    /**
-     * Print the point data of node
+     * Print the point data
      */
     print() {
         console.log("(" + this.point.join(',') + "),")

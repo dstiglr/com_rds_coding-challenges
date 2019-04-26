@@ -36,9 +36,10 @@
                 length: $('#points').val()
             }, () => [((Math.random() * windowWidth - 220)), ((Math.random() * windowHeight - 120))]);
             kd = new KDTree(points, 2);
-            nearestPoints = kd.nearestNeighbors([2, 8], K_DIST);
+            console.log(kd);
+            nearestPoints = kd.nearestNeighbors([188, 188], K_DIST);
             visitedPoints = kd.getVisitedPoints();
-            nearestP = kd.nearest([2, 8]);
+            nearestP = kd.nearest([188, 188]);
         }
 
         function draw() {
@@ -61,7 +62,7 @@
             });
 
             if (nearestP && $('#type').val() == 'kd-tree-point') {
-                circle(nearestP.point[0], nearestP.point[1], CIRCLE_SIZE * 2)
+                circle(nearestP[0], nearestP[1], CIRCLE_SIZE * 2)
             }
 
             fill(0, 0, 255);

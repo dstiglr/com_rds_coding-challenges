@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>K-Means</title>
+    <meta charset="UTF-8" />
+</head>
+
+<body>
+    <br>
+    <div id='container'></div>
+    <br>
+    <select id="type">
+        <option value="kd-tree">kd-tree nearest neightbors</option>
+        <option value="force">Force Brute nearest neightbors</option>
+        <option value="kd-tree-point">kd-tree nearest point</option>
+    </select> &nbsp; # Points: <input id="points" type="number" value="500" onchange="updatePoints()"> # Groups: <input id="clusters" type="number" value="45">
+    <br> Frame rate: <input type="text" id="frame_rate" readonly/>
+    <script src="../pubic/js/jquery.min.js"></script>
+    <script src="kd-tree.js"></script>
+    <script src="k-means.js"></script>
+    <script src="../pubic/js/p5.min.js"></script>
+    <script>
+        var data;
+        var kMeans;
+        var CLUSTERS = parseFloat($('#clusters').val());
+        var CIRCLE_SIZE = 4;
+
+        function setup() {
+            var canvas = createCanvas(windowWidth - 220, windowHeight - 120);
+            canvas.parent('container');
+            data = Array.from({
+                length: $('#points').val()
+            }, () => [((Math.random() * windowWidth - 220)), ((Math.random() * windowHeight - 120))]);
+
+            kMeans = new KMeans(data, CLUSTERS);
+
+            data = kMeans.process();
+        }
+
+        function draw() {
+            background(255);
+            fill(0);
+            data.forEach(function(item) {
+                if (item.label == 0)
+                    fill(255, 0, 0)
+                else if (item.label == 1)
+                    fill(255, 255, 0)
+                else if (item.label == 2)
+                    fill(0, 255, 255)
+                else if (item.label == 3)
+                    fill(0, 255, 0)
+                else if (item.label == 4)
+                    fill(0, 0, 255)
+
+
+                circle(item[0], item[1], CIRCLE_SIZE)
+                line(item[0], item[1], item.centroid[0], item.centroid[1])
+            });
+
+            if (!kMeans.shouldStop())
+                data = kMeans.process();
+        }
+    </script>
+</body>
+
+</html>
