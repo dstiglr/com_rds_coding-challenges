@@ -6,14 +6,12 @@ class KMeans {
      */
     constructor(data, clusterSize) {
         if (!Array.isArray(data) || data.length <= 0)
-            throw "The given data must be an array and can't be empty";
-
-        this.log('k-means init...');
+            throw "The given data must be an array and can't be empty ---";
 
         this.data = data;
-        this.k = data.length / clusterSize;
+        this.k = Math.floor(data.length / clusterSize);
         this.DIM = 2; // dimension of input data
-        this.MAX_ITERATIONS = 50;
+        this.MAX_ITERATIONS = 80;
         this.kdTree = null;
 
         this.iterations = 0;
@@ -24,19 +22,17 @@ class KMeans {
 
     build() {
         this.centroids = this.getRandomCentroids();
-        console.log(this.centroids);
         // build kdtree for clusters
         this.kdTree = new KDTree(this.centroids, this.DIM);
     }
 
     process() {
         console.log('process start...', this.iterations, this.MAX_ITERATIONS);
-        this.oldCentroids = this.centroids;
+        this.oldCentroids = JSON.parse(JSON.stringify(this.centroids));
         this.iterations++;
 
         this.getLabels();
         this.getCentroids();
-
         return this.data;
     }
 
@@ -44,17 +40,16 @@ class KMeans {
 
         if (this.iterations > this.MAX_ITERATIONS)
             return true;
-        /*
+
         var stop = true;
 
         for (var i = 0; i < this.centroids.length; i++) {
             if (!this.isEqual(this.centroids[i], this.oldCentroids[i])) {
                 stop = false;
-                break;
             }
         }
         return stop;
-        */
+
     }
 
     getLabels() {
@@ -86,8 +81,6 @@ class KMeans {
             this.centroids[i][1] = meanY / length;
         }
         this.kdTree = new KDTree(this.centroids, this.DIM);
-
-        this.log(this.centroids);
     }
 
     /**
@@ -103,17 +96,12 @@ class KMeans {
     }
 
     getRandomCentroids() {
-        var minVal = 100;
-        var maxVal = 500;
+        var minVal = 0;
+        var maxVal = 10;
         var centroids = [];
         for (var i = 0; i < this.k; i++) {
-            var centroid = [];
-            for (var j = 0; j < this.DIM; j++) {
-                centroid.push(Math.random() * (maxVal - minVal) + minVal);
-            }
-            centroid.label = i;
-            centroid.data = [];
-            centroids.push(centroid);
+            centroids.push(this.data[i]);
+            centroids[i].label = i;
         }
         return centroids;
     }

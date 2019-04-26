@@ -7,15 +7,8 @@
 </head>
 
 <body>
-    <br>
-    <div id='container'></div>
-    <br>
-    <select id="type">
-        <option value="kd-tree">kd-tree nearest neightbors</option>
-        <option value="force">Force Brute nearest neightbors</option>
-        <option value="kd-tree-point">kd-tree nearest point</option>
-    </select> &nbsp; # Points: <input id="points" type="number" value="500" onchange="updatePoints()"> # Groups: <input id="clusters" type="number" value="45">
-    <br> Frame rate: <input type="text" id="frame_rate" readonly/>
+    <div id='container' style="width:500;height:500"></div>
+    <br> &nbsp; # Points: <input id="points" type="number" value="500" onchange="updatePoints()"> # Groups: <input id="clusters" type="number" value="45">
     <script src="../pubic/js/jquery.min.js"></script>
     <script src="kd-tree.js"></script>
     <script src="k-means.js"></script>
@@ -27,39 +20,43 @@
         var CIRCLE_SIZE = 4;
 
         function setup() {
-            var canvas = createCanvas(windowWidth - 220, windowHeight - 120);
+            var canvas = createCanvas(windowWidth - 50, windowHeight - 70);
             canvas.parent('container');
             data = Array.from({
                 length: $('#points').val()
-            }, () => [((Math.random() * windowWidth - 220)), ((Math.random() * windowHeight - 120))]);
+            }, () => [((Math.random() * (windowWidth - 50))), ((Math.random() * (windowHeight - 70)))]);
 
             kMeans = new KMeans(data, CLUSTERS);
-
             data = kMeans.process();
         }
 
         function draw() {
             background(255);
-            fill(0);
             data.forEach(function(item) {
-                if (item.label == 0)
-                    fill(255, 0, 0)
-                else if (item.label == 1)
-                    fill(255, 255, 0)
-                else if (item.label == 2)
-                    fill(0, 255, 255)
-                else if (item.label == 3)
-                    fill(0, 255, 0)
-                else if (item.label == 4)
-                    fill(0, 0, 255)
-
-
-                circle(item[0], item[1], CIRCLE_SIZE)
+                var color = intToARGB('' + item.label);
+                fill(color)
+                circle(item[0], item[1], CIRCLE_SIZE);
+                stroke(0);
                 line(item[0], item[1], item.centroid[0], item.centroid[1])
+            });
+
+            kMeans.centroids.forEach(function(item) {
+                var color = intToARGB('' + item.label);
+                var color = intToARGB('' + item.label);
+                fill(color)
+                stroke(255);
+                rect(item[0] - CIRCLE_SIZE, item[1] - CIRCLE_SIZE, CIRCLE_SIZE * 2, CIRCLE_SIZE * 2)
+
             });
 
             if (!kMeans.shouldStop())
                 data = kMeans.process();
+        }
+
+        function intToARGB(str) {
+            for (var i = 0, hash = 0; i < str.length; hash = str.charCodeAt(i++) + ((hash << 5) - hash));
+            color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777216)).toString(16);
+            return '#' + Array(6 - color.length + 1).join('0') + color;
         }
     </script>
 </body>

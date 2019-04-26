@@ -7,7 +7,6 @@
 </head>
 
 <body>
-    <br>
     <div id='container'></div>
     <br>
     <select id="type">
@@ -30,11 +29,11 @@
         var nearestP;
 
         function setup() {
-            var canvas = createCanvas(windowWidth - 220, windowHeight - 120);
+            var canvas = createCanvas(windowWidth - 50, windowHeight - 90);
             canvas.parent('container');
             points = Array.from({
                 length: $('#points').val()
-            }, () => [((Math.random() * windowWidth - 220)), ((Math.random() * windowHeight - 120))]);
+            }, () => [((Math.random() * (windowWidth - 50))), ((Math.random() * (windowHeight - 90)))]);
             kd = new KDTree(points, 2);
             console.log(kd);
             nearestPoints = kd.nearestNeighbors([188, 188], K_DIST);
@@ -107,7 +106,7 @@
         function updatePoints() {
             points = Array.from({
                 length: $('#points').val()
-            }, () => [((Math.random() * windowWidth - 220)), ((Math.random() * windowHeight - 120))]);
+            }, () => [((Math.random() * (windowWidth - 50))), ((Math.random() * (windowHeight - 90)))]);
             kd = new KDTree(points, 2);
         }
     </script>

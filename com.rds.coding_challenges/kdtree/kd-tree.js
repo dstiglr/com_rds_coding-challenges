@@ -62,7 +62,7 @@ class KDTree {
      */
     build() {
         if (!Array.isArray(this.data) || this.data.length <= 0)
-            throw "The given data must be an array and can't be empty";
+            throw "The given data must be an array and can't be empty ...";
 
         this.log('build started...');
 
