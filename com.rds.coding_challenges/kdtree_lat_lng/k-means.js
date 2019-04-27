@@ -21,22 +21,28 @@ class KMeans {
     }
 
     build() {
+        this.iterations = 0;
         this.centroids = this.getRandomCentroids();
         // build kdtree for clusters
         this.kdTree = new KDTree(this.centroids, this.DIM);
     }
 
     process() {
-        console.log('process start...', this.iterations, this.MAX_ITERATIONS);
-        this.oldCentroids = JSON.parse(JSON.stringify(this.centroids));
-        this.iterations++;
+        if (!this.shouldStop()) {
+            console.log('process start...', this.iterations, this.MAX_ITERATIONS);
+            this.oldCentroids = JSON.parse(JSON.stringify(this.centroids));
+            this.iterations++;
 
-        this.getLabels();
-        this.getCentroids();
-        return this.data;
+            this.getLabels();
+            this.getCentroids();
+        }
+
     }
 
     shouldStop() {
+
+        if (this.oldCentroids == null)
+            return;
 
         if (this.iterations > this.MAX_ITERATIONS)
             return true;
@@ -49,12 +55,12 @@ class KMeans {
             }
         }
         return stop;
-
     }
 
     getLabels() {
         for (var i = 0; i < this.data.length; i++) {
-            var centroid = this.kdTree.nearest(this.data[i]);
+
+            const centroid = this.kdTree.nearest([this.data[i][0], this.data[i][1], this.data[i][2]]);
             this.data[i].label = centroid.label;
             this.data[i].centroid = centroid;
         }
@@ -66,19 +72,24 @@ class KMeans {
         }
 
         for (var i = 0; i < this.data.length; i++) {
-            this.centroids[this.data[i].label].data.push(this.data[i]);
+
+            var data = JSON.parse(JSON.stringify(this.data[i]));
+            this.centroids[this.data[i].label].data.push(data);
         }
 
         for (var i = 0; i < this.centroids.length; i++) {
             var meanX = 0;
             var meanY = 0;
+            var meanZ = 0;
             var length = this.centroids[i].data.length;
             for (var j = 0; j < length; j++) {
                 meanX += this.centroids[i].data[j][0];
                 meanY += this.centroids[i].data[j][1];
+                meanZ += this.centroids[i].data[j][2];
             }
             this.centroids[i][0] = meanX / length;
             this.centroids[i][1] = meanY / length;
+            this.centroids[i][2] = meanZ / length;
         }
         this.kdTree = new KDTree(this.centroids, this.DIM);
     }
@@ -96,11 +107,11 @@ class KMeans {
     }
 
     getRandomCentroids() {
-        var minVal = 0;
-        var maxVal = 10;
         var centroids = [];
         for (var i = 0; i < this.k; i++) {
-            centroids.push(this.data[i]);
+            var rand = Math.floor(Math.random() * this.data.length);
+            console.log(rand);
+            centroids.push([this.data[rand][0], this.data[rand][1], this.data[rand][2]]);
             centroids[i].label = i;
         }
         return centroids;

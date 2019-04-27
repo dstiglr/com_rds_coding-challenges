@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>KD-Tree</title>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="assets/leaflet.css">
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id='map'></div>
+    <script src="../pubic/js/jquery.min.js"></script>
+    <script src="nvector.js"></script>
+    <script src="k-means.js"></script>
+    <script src="kd-tree.js"></script>
+    <script src="assets/leaflet.js"></script>
+    <script>
+        var lat = 22.154311;
+        var lng = -100.997803;
+        var map;
+        var nearMarker;
+        var nearNeigboorsMarkers = [];
+        var nearest;
+        var radiusMarker;
+        var kdTree = null;
+
+        var data = [];
+        var centroidsMarkers = L.layerGroup();
+
+        var nVec = new NVector(lat, lng); // department
+        var nVec2 = new NVector(22.148634, -100.991897); //red track
+        var kMeans;
+
+        var CIRCLE_SIZE = 3000;
+
+
+        console.log('distance', nVec.distanceTo(nVec2));
+
+        $(function() {
+            initMap();
+        });
+
+
+        /**
+         * Init map view
+         */
+        function initMap() {
+            // configure Leaflet map
+            map = new L.map('map', {
+                attributionControl: false,
+                preferCanvas: true
+            });
+
+            // listen onLoad event
+            map.on('load', function() {
+                // init start marker
+                console.log('map loaded');
+                $.getJSON("assets/gps.json", function(json) {
+                    for (var i = 0; i < json.length; i++) {
+
+                        // generate n-vector
+                        var nVector = new NVector(json[i].lat, json[i].lng);
+                        // store gobal data
+                        data.push([nVector.x, nVector.y, nVector.z, json[i]]);
+
+
+                        L.circleMarker([json[i].lat, json[i].lng], {
+                            radius: 6,
+                            color: '#ffffff',
+                            fillColor: '#3388ff',
+                            weight: 1,
+                            fillOpacity: 0.9,
+                        }).addTo(map);
+                    }
+
+                    kdTree = new KDTree(data, 2);
+                    kMeans = new KMeans(data, CIRCLE_SIZE);
+                    kMeans.process();
+                    console.log(kMeans.centroids);
+                    kMeans.data.forEach(function(item) {
+                        //var color = intToARGB('' + item.label);
+                        var _nVec = NVector.build(item.centroid[0], item.centroid[1], item.centroid[2]);
+                        var latLng = _nVec.toLocation();
+                        var latlngs = [
+                            [item[3].lat, item[3].lng],
+                            [latLng.lat, latLng.lng]
+                        ];
+
+                        var line = L.polyline(latlngs, {
+                            color: '#000'
+                        });
+                        centroidsMarkers.addLayer(line);
+                    });
+
+                    centroidsMarkers.addTo(map);
+                });
+            });
+
+            map.on('mousemove', function(ev) {
+
+                if (radiusMarker) {
+                    map.removeLayer(radiusMarker);
+                }
+
+
+                if (nearMarker) {
+                    map.removeLayer(nearMarker);
+                }
+
+
+
+                if (nearNeigboorsMarkers.length > 0) {
+                    nearNeigboorsMarkers.forEach(function(marker) {
+                        map.removeLayer(marker);
+                    });
+                }
+
+                radiusMarker = L.circle(ev.latlng, {
+                    radius: 500,
+                    color: '#3388ff',
+                    fillColor: '#ff0000',
+                    fillOpacity: 0.01,
+                }).addTo(map);
+
+                var nVec = new NVector(ev.latlng.lat, ev.latlng.lng);
+                var kNeighboors = kdTree.nearestNeighbors([nVec.x, nVec.y, nVec.z], 500.0);
+                var nearest = kdTree.nearest([nVec.x, nVec.y, nVec.z]);
+
+                nearNeigboorsMarkers = [];
+
+                kNeighboors.forEach(function(item) {
+                    var markenr = L.circleMarker([item[3].lat, item[3].lng], {
+                        radius: 6,
+                        color: '#ffffff',
+                        fillColor: '#ff0000',
+                        weight: 1,
+                        fillOpacity: 0.9,
+                    }).addTo(map);
+                    nearNeigboorsMarkers.push(markenr);
+                });
+
+
+                nearMarker = L.circleMarker([nearest[3].lat, nearest[3].lng], {
+                    radius: 9,
+                    color: '#ffffff',
+                    fillColor: '#9400D3',
+                    weight: 1,
+                    fillOpacity: 0.9,
+                }).addTo(map);
+
+                if (!kMeans.shouldStop()) {
+                    if (centroidsMarkers) {
+                        centroidsMarkers.clearLayers();
+                    }
+
+                    kMeans.process();
+                    kMeans.data.forEach(function(item) {
+                        var _nVec = NVector.build(item.centroid[0], item.centroid[1], item.centroid[2]);
+                        var latLng = _nVec.toLocation();
+                        var latlngs = [
+                            [item[3].lat, item[3].lng],
+                            [latLng.lat, latLng.lng]
+                        ];
+
+                        var line = L.polyline(latlngs, {
+                            color: '#000'
+                        });
+                        centroidsMarkers.addLayer(line);
+                    });
+
+                    centroidsMarkers.addTo(map);
+                }
+
+
+
+
+            });
+            // set map view
+            map.setView([22.148634, -100.991897], 13);
+            // load map style
+            L.tileLayer("https://mapas.rtplataforma.com:8443/styles/klokantech-basic/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+            }).addTo(map);
+            //resize the chart when window resize
+            $(window).resize(function() {
+                map.invalidateSize();
+            });
+        }
+
+        function intToARGB(str) {
+            for (var i = 0, hash = 0; i < str.length; hash = str.charCodeAt(i++) + ((hash << 5) - hash));
+            color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777216)).toString(16);
+            return '#' + Array(6 - color.length + 1).join('0') + color;
+        }
+    </script>
+</body>
+
+</html>

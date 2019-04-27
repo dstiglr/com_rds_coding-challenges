@@ -38,7 +38,7 @@ class KDTree {
         this._nearestK = []; // storage nearest points for given distance
         this._distance = Infinity; // manages distance on query search
         this._visited = []; // debug only
-        this.distanceFunc = this.euclidianDist;
+        this.distanceTo = this.nVectorDistance;
         // build kd-tree
         this.build();
     }
@@ -137,7 +137,7 @@ class KDTree {
             return;
         }
 
-        var _dist = this.euclidianDist(node.point, point);
+        var _dist = this.distanceTo(node.point, point);
         this._visited.push(node.point);
         if (_dist <= dist) {
             node.point['dist'] = _dist;
@@ -197,7 +197,7 @@ class KDTree {
             return;
         }
 
-        var _dist = this.euclidianDist(node.point, point);
+        var _dist = this.distanceTo(node.point, point);
         this._visited.push(node.point);
         if (_dist < this._distance) {
             this._distance = _dist;
@@ -247,6 +247,12 @@ class KDTree {
         for (var i = 0; i < this.k; i++)
             dist += Math.pow((a[i] - b[i]), 2);
         return Math.sqrt(dist);
+    }
+
+    nVectorDistance(a, b) {
+        const aVec = NVector.build(a[0], a[1], a[2]);
+        const bVec = NVector.build(b[0], b[1], b[2]);
+        return aVec.distanceTo(bVec);
     }
 
     log(message) {
